@@ -9,29 +9,27 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def corr_heat_map(data: pd.DataFrame, country: str):
+def scatter_matrix(data: pd.DataFrame, country: str):
     df = data.xs(country, level=1)
-    df = df.dropna(axis='columns')
-    print(df.columns)
-    df = df.T
-    corr = df.corr()
-    print(corr.columns, corr.index)
-    fig, ax = plt.subplots(figsize=(9, 9))
-    im = ax.imshow(corr, interpolation='nearest')
-    fig.colorbar(im, orientation='vertical', fraction=0.05)
-    ax.set_xticklabels(['']+corr.columns.to_list(), rotation=90, fontsize=6)
-    ax.set_yticklabels(['']+corr.index.to_list(), rotation=0, fontsize=6)
-    for i in range(len(corr.index)):
-        for j in range(len(corr.columns)):
-            text = ax.text(j, i, round(corr.to_numpy()[i, j], 2),
-                           ha="center", va="center", color="black")
+    axs = pd.plotting.scatter_matrix(df.T, figsize=(9, 9), s=20, alpha=0.8)
+    for ax in axs.flatten():
+        ax.xaxis.label.set_rotation(90)
+        ax.yaxis.label.set_rotation(0)
+        ax.yaxis.label.set_ha('right')
+    plt.suptitle(f'Scatter Matrix: {country}')
+    plt.tight_layout()
     plt.show()
 
 
 def main():
     df = pd.read_excel('wb_data.xlsx', index_col=[0, 1])
-    # greenhouse_gas_emission_barchart(df)
-    corr_heat_map(df, "United States")
+    print(df.index.get_level_values(0).unique())
+
+    # In order to find out right candidate for the clustering viewing scatter plot of several countries
+    countries = ['United States', 'United Kingdom',
+                 'China', 'India', 'Bangladesh', 'Nigeria']
+    for country in countries:
+        scatter_matrix(df, country)
 
 
 if __name__ == "__main__":
