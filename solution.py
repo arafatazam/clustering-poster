@@ -1,38 +1,50 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-World bank data analysis
+World bank data clustering
 @author: Muhammad Arafat Azam (id: 21087019)
 """
 
 import pandas as pd
 import matplotlib.pyplot as plt
-from math import ceil
+from typing import Union
 from textwrap import wrap
 
-YEARS = ['1991', '1995', '1999', '2003', '2007', '2011', '2015', '2019']
-CO2_IDX = 'CO2 emissions (metric tons per capita)'
+YEARS = [f'{i}' for i in range(1990, 2021, 5)]
 
 
-def scatter_matrix(data: pd.DataFrame):
-    #Filter by selected years for faster result
+def normalize(data: pd.DataFrame) -> pd.DataFrame:
+    df = data
+    for col in data.columns:
+        df[col] = df[col]/df[col].abs().max()
+    return df
+
+
+def scatter_matrix(data: pd.DataFrame, do_normalize: bool = True):
     df = data[YEARS]
 
-    #Unstacking 2nd index (Countries) into columns and then transposing
+    if do_normalize:
+        df = normalize(data)
+
+    # Unstacking 2nd index (Countries) into columns and then transposing
     df = df.unstack(level=1).T
 
-    axs = pd.plotting.scatter_matrix(df, figsize=(7, 7), s=20, alpha=0.8)
+    df.columns = ['\n'.join(wrap(x, 20)) for x in df.columns]
+    
+    axs = pd.plotting.scatter_matrix(df, figsize=(8, 8), s=5, alpha=0.8)
+    
     for ax in axs.flatten():
-        ax.xaxis.label.set_rotation(90)
+        ax.xaxis.label.set_rotation(45)
         ax.yaxis.label.set_rotation(0)
         ax.yaxis.label.set_ha('right')
+
     plt.suptitle('Scatter Matrix')
     plt.tight_layout()
     plt.show()
 
 
 def corr_heat_map(data: pd.DataFrame):
-    #Unstacking 2nd index (Countries) into columns and then transposing
+    # Unstacking 2nd index (Countries) into columns and then transposing
     df = data.unstack(level=1).T
 
     corr = df.corr()
@@ -52,28 +64,13 @@ def corr_heat_map(data: pd.DataFrame):
     plt.show()
 
 
-def plot_before_clustering(data: pd.DataFrame, idx: str):
-    df = data.loc[[idx, CO2_IDX], YEARS]
-    df = df.fillna(0.0)
-    col = 3
-    rows = ceil(len(YEARS)/3)
-    iter = 1
-    for year in YEARS:
-        x = df.xs(CO2_IDX, level=0)[[year]]
-        y = df.xs(idx, level=0)[[year]]
-        plt.scatter(x,y,s=5)
-        plt.title(f'{idx} [{year}]')
-        plt.xlabel(CO2_IDX)
-        plt.ylabel(idx)
-        plt.show()
-
-
 def main():
     raw_data = pd.read_excel('wb_data.xlsx', index_col=[0, 1])
 
-    # Forward fill then backward fill consecutive 3 NaN values. Drop rest of the NaN containingrows 
+    # Forward fill then backward fill consecutive 3 NaN values. Drop rest of the NaN containingrows
     # otherwise they will bias our analysis
-    clean_data = raw_data.ffill(axis='columns', limit=3).bfill(axis='columns', limit=5).dropna(axis='index')
+    clean_data = raw_data.ffill(axis='columns', limit=3).bfill(
+        axis='columns', limit=5).dropna(axis='index')
 
     # Heatmap for choosing appropriate indices for clustering
     corr_heat_map(clean_data)
